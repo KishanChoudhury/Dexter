@@ -3,6 +3,25 @@ import string
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
+from nltk.stem.snowball import SnowballStemmer
+from nltk.corpus import stopwords
+from sklearn.cluster import KMeans
+
+
+def ParseText(Str):
+    
+    #text="".join([ch for ch in Str if ch not in string.punctuation])
+    text_list=Str.split(" ")
+    stemmer=SnowballStemmer("english")
+    stemmed_list=[]
+    sw=stopwords.words("english")
+    for word in text_list:
+        stripped_word=word.strip()
+        if stemmer.stem(stripped_word) not in sw:
+            stemmed_list.append(stemmer.stem(stripped_word))
+    return " ".join(stemmed_list)
+    
+
 def preprocess(text):
     text=re.sub('<[^>]+>', '', text)
     text=text.replace('A:','')
@@ -17,19 +36,23 @@ def preprocess(text):
 import glob
 path='F:/BacktoRobotics/Hackathon/Data/CCCS-Decoda-FR-EN-training_2015-01-30/CCCS-Decoda-FR-EN-training_2015-01-30/EN/auto/text/*.txt'
 files=glob.glob(path)
-traindata={}
+traindata={'Conversation':{}}
 i=0;
 for file in files:
-    with open(files[0]) as f:
+    with open(file) as f:
         text=f.read()
         processed_text=preprocess(text)
+        stemmed_text=ParseText(processed_text)
         i+=1
-        traindata[i]={}
-        traindata[i]['Conversation']=processed_text
-
+        traindata['Conversation'][i]=stemmed_text
 
 df=pd.DataFrame(traindata)
-print(df.describe())        
 
+vec=CountVectorizer()
+vec.fit(df['Conversation'])
+X=vec.transform(df['Conversation'])
+
+kmeans=KMeans(n_clusters=2,random_state=0).fit(X)
+print(kmeans.labels_)
 
 
