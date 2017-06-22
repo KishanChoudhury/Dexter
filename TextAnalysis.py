@@ -34,10 +34,10 @@ def preprocess(text):
 
 #load training data
 import glob
-path='F:/BacktoRobotics/Hackathon/Data/CCCS-Decoda-FR-EN-training_2015-01-30/CCCS-Decoda-FR-EN-training_2015-01-30/EN/auto/text/*.txt'
+path='F:/BacktoRobotics/Hackathon/Data/CCCS-Decoda-FR-EN-training_2015-01-30/CCCS-Decoda-FR-EN-training_2015-01-30/EN/auto_no_synopsis/temp/*.txt'
 files=glob.glob(path)
-traindata={'Conversation':{}}
-i=0;
+traindata={'Conversation':{},'Labels':{}}
+i=0
 for file in files:
     with open(file) as f:
         text=f.read()
@@ -46,13 +46,36 @@ for file in files:
         i+=1
         traindata['Conversation'][i]=stemmed_text
 
+i=0
+import csv
+LabelFilePath='F:\BacktoRobotics\Hackathon\Category.csv'
+with open(LabelFilePath,'r') as f:
+    reader=csv.reader(f)
+    for row in reader:
+        i+=1
+        traindata['Labels'][i]=row[1]
+
 df=pd.DataFrame(traindata)
 
+features=df['Conversation']
+labels=df['Labels']
+
+
+
+from sklearn.model_selection import train_test_split
+X_train,X_test,Y_train,Y_test=train_test_split(features,labels,test_size=.3,random_state=42)
+
+
 vec=CountVectorizer()
-vec.fit(df['Conversation'])
-X=vec.transform(df['Conversation'])
-
-kmeans=KMeans(n_clusters=2,random_state=0).fit(X)
-print(kmeans.labels_)
+vec.fit(df['Conversation'].values.astype('U'))
+X_train_transformed=vec.transform(X_train.values.astype('U'))
+X_test_transformed=vec.transform(X_test.values.astype('U'))
 
 
+
+from sklearn.metrics import accuracy_score
+from sklearn.naive_bayes import GaussianNB
+clf=GaussianNB()
+clf.fit(X_train_transformed.toarray(),Y_train)
+Y_pred=clf.predict(X_test_transformed.toarray())
+print(accuracy_score(Y_test,Y_pred))
